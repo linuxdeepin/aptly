@@ -42,6 +42,8 @@ type Package struct {
 	contents []string
 	// Mother collection
 	collection *PackageCollection
+
+	Sha512open bool
 }
 
 // Package types
@@ -533,8 +535,10 @@ func (p *Package) Stanza() (result Stanza) {
 			if f.Checksums.SHA256 != "" {
 				sha256 = append(sha256, fmt.Sprintf(" %s %d %s\n", f.Checksums.SHA256, f.Checksums.Size, f.Filename))
 			}
-			if f.Checksums.SHA512 != "" {
-				sha512 = append(sha512, fmt.Sprintf(" %s %d %s\n", f.Checksums.SHA512, f.Checksums.Size, f.Filename))
+			if p.Sha512open {
+				if f.Checksums.SHA512 != "" {
+					sha512 = append(sha512, fmt.Sprintf(" %s %d %s\n", f.Checksums.SHA512, f.Checksums.Size, f.Filename))
+				}
 			}
 		}
 
@@ -566,8 +570,10 @@ func (p *Package) Stanza() (result Stanza) {
 		if f.Checksums.SHA256 != "" {
 			result["SHA256"] = f.Checksums.SHA256
 		}
-		if f.Checksums.SHA512 != "" {
-			result["SHA512"] = f.Checksums.SHA512
+		if p.Sha512open {
+			if f.Checksums.SHA512 != "" {
+				result["SHA512"] = f.Checksums.SHA512
+			}
 		}
 		result["Size"] = fmt.Sprintf("%d", f.Checksums.Size)
 	}

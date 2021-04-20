@@ -501,7 +501,7 @@ func (p *PublishedRepo) GetSuite() string {
 
 // Publish publishes snapshot (repository) contents, links package files, generates Packages & Release files, signs them
 func (p *PublishedRepo) Publish(packagePool aptly.PackagePool, publishedStorageProvider aptly.PublishedStorageProvider,
-	collectionFactory *CollectionFactory, signer pgp.Signer, progress aptly.Progress, forceOverwrite bool) error {
+	collectionFactory *CollectionFactory, signer pgp.Signer, progress aptly.Progress, forceOverwrite, Sha512open bool) error {
 	publishedStorage := publishedStorageProvider.GetPublishedStorage(p.Storage)
 
 	err := publishedStorage.MkDir(filepath.Join(p.Prefix, "pool"))
@@ -654,7 +654,7 @@ func (p *PublishedRepo) Publish(packagePool aptly.PackagePool, publishedStorageP
 					if err != nil {
 						return err
 					}
-
+					pkg.Sha512open = Sha512open
 					err = pkg.Stanza().WriteTo(bufWriter, pkg.IsSource, false, pkg.IsInstaller)
 					if err != nil {
 						return err
@@ -789,8 +789,9 @@ func (p *PublishedRepo) Publish(packagePool aptly.PackagePool, publishedStorageP
 	release["MD5Sum"] = ""
 	release["SHA1"] = ""
 	release["SHA256"] = ""
-	release["SHA512"] = ""
-
+	if Sha512open {
+		release["SHA512"] = ""
+	}
 	release["Components"] = strings.Join(p.Components(), " ")
 
 	sortedPaths := make([]string, 0, len(indexes.generatedFiles))
@@ -804,7 +805,9 @@ func (p *PublishedRepo) Publish(packagePool aptly.PackagePool, publishedStorageP
 		release["MD5Sum"] += fmt.Sprintf(" %s %8d %s\n", info.MD5, info.Size, path)
 		release["SHA1"] += fmt.Sprintf(" %s %8d %s\n", info.SHA1, info.Size, path)
 		release["SHA256"] += fmt.Sprintf(" %s %8d %s\n", info.SHA256, info.Size, path)
-		release["SHA512"] += fmt.Sprintf(" %s %8d %s\n", info.SHA512, info.Size, path)
+		if Sha512open {
+			release["SHA512"] += fmt.Sprintf(" %s %8d %s\n", info.SHA512, info.Size, path)
+		}
 	}
 
 	releaseFile := indexes.ReleaseFile()

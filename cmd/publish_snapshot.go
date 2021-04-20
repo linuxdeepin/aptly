@@ -158,8 +158,8 @@ func aptlyPublishSnapshotOrRepo(cmd *commander.Command, args []string) error {
 		context.Progress().ColoredPrintf("@rWARNING@|: force overwrite mode enabled, aptly might corrupt other published repositories sharing " +
 			"the same package pool.\n")
 	}
-
-	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, context.Progress(), forceOverwrite)
+	sha512open := context.Flags().Lookup("sha512-open").Value.Get().(bool)
+	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, context.Progress(), forceOverwrite, sha512open)
 	if err != nil {
 		return fmt.Errorf("unable to publish: %s", err)
 	}

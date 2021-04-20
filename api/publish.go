@@ -105,6 +105,7 @@ func apiPublishRepoOrSnapshot(c *gin.Context) {
 		Architectures        []string
 		Signing              SigningOptions
 		AcquireByHash        *bool
+		Sha512open 			 bool
 	}
 
 	if c.Bind(&b) != nil {
@@ -213,7 +214,7 @@ func apiPublishRepoOrSnapshot(c *gin.Context) {
 		return
 	}
 
-	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, nil, b.ForceOverwrite)
+	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, nil, b.ForceOverwrite, b.Sha512open)
 	if err != nil {
 		c.AbortWithError(500, fmt.Errorf("unable to publish: %s", err))
 		return
@@ -244,6 +245,7 @@ func apiPublishUpdateSwitch(c *gin.Context) {
 			Name      string `binding:"required"`
 		}
 		AcquireByHash *bool
+		Sha512open    bool
 	}
 
 	if c.Bind(&b) != nil {
@@ -327,7 +329,7 @@ func apiPublishUpdateSwitch(c *gin.Context) {
 		published.AcquireByHash = *b.AcquireByHash
 	}
 
-	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, nil, b.ForceOverwrite)
+	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, nil, b.ForceOverwrite, b.Sha512open)
 	if err != nil {
 		c.AbortWithError(500, fmt.Errorf("unable to update: %s", err))
 		return

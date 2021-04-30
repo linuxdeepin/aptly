@@ -17,7 +17,7 @@ import (
 	"github.com/aptly-dev/aptly/aptly"
 	"github.com/aptly-dev/aptly/console"
 	"github.com/aptly-dev/aptly/database"
-	"github.com/aptly-dev/aptly/database/goleveldb"
+	goleveldb "github.com/aptly-dev/aptly/database/etcddb"
 	"github.com/aptly-dev/aptly/deb"
 	"github.com/aptly-dev/aptly/files"
 	"github.com/aptly-dev/aptly/http"
@@ -238,7 +238,8 @@ func (context *AptlyContext) DBPath() string {
 
 // DBPath builds path to database
 func (context *AptlyContext) dbPath() string {
-	return filepath.Join(context.config().RootDir, "db")
+	//return filepath.Join(context.config().RootDir, "db")
+	return filepath.Join(context.config().RootDir)
 }
 
 // Database opens and returns current instance of database

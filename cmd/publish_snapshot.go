@@ -88,7 +88,7 @@ func aptlyPublishSnapshotOrRepo(cmd *commander.Command, args []string) error {
 			if err != nil {
 				return fmt.Errorf("unable to publish: %s", err)
 			}
-
+			fmt.Println("zzzzzzz:  ", localRepo.UUID, localRepo.Name)
 			sources = append(sources, localRepo)
 			parts = append(parts, localRepo.Name)
 
@@ -234,6 +234,7 @@ Example:
 	cmd.Flag.String("suite", "", "suite to publish (defaults to distribution)")
 	cmd.Flag.Bool("force-overwrite", false, "overwrite files in package pool in case of mismatch")
 	cmd.Flag.Bool("acquire-by-hash", false, "provide index files by hash")
+	cmd.Flag.Bool("sha512-open", false, "Open or not Open SHA512")
 
 	return cmd
 }

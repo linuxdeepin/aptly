@@ -1,9 +1,9 @@
 package etcddb
 
 import (
-	"errors"
 	"fmt"
 	"github.com/aptly-dev/aptly/database"
+	"github.com/syndtr/goleveldb/leveldb"
 	"go.etcd.io/etcd/client/v3"
 )
 
@@ -14,7 +14,7 @@ type etcd_storage struct {
 
 // CreateTemporary creates new DB of the same type in temp dir
 func (s *etcd_storage) CreateTemporary() (database.Storage, error) {
-	return &etcd_storage{}, nil
+	return s, nil
 }
 
 // Get key value from etcd
@@ -27,7 +27,7 @@ func (s *etcd_storage) Get(key []byte) (value []byte, err error) {
 		value = kv.Value
 	}
 	if len(value) == 0 {
-		err = errors.New("key not found")
+		err = database.ErrNotFound
 		return
 	}
 	return
@@ -144,12 +144,19 @@ func (s *etcd_storage) Open() error {
 // CreateBatch creates a Batch object
 func (s *etcd_storage) CreateBatch() database.Batch {
 	fmt.Println("run CreateBatch")
-	return nil
+	return &etcdbatch{
+		db: s.db,
+		b:  &leveldb.Batch{},
+	}
 }
 
 // OpenTransaction creates new transaction.
 func (s *etcd_storage) OpenTransaction() (database.Transaction, error) {
-	kvc := clientv3.NewKV(s.db)
+	cli, err := internalOpen(s.url)
+	if err != nil {
+		return nil, err
+	}
+	kvc := clientv3.NewKV(cli)
 	return &transaction{t: kvc}, nil
 }
 
@@ -164,6 +171,7 @@ func (s *etcd_storage) Drop() error {
 	fmt.Println("run Drop")
 	return nil
 }
+
 
 // Check interface
 var (

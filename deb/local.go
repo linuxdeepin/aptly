@@ -182,6 +182,7 @@ func (collection *LocalRepoCollection) Update(repo *LocalRepo) error {
 
 // LoadComplete loads additional information for local repo
 func (collection *LocalRepoCollection) LoadComplete(repo *LocalRepo) error {
+	fmt.Println("LoadComplete: ", string(repo.RefKey()), repo.Name)
 	encoded, err := collection.db.Get(repo.RefKey())
 	if err == database.ErrNotFound {
 		return nil
@@ -189,6 +190,7 @@ func (collection *LocalRepoCollection) LoadComplete(repo *LocalRepo) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("encoded: ", string(encoded), err)
 
 	repo.packageRefs = &PackageRefList{}
 	return repo.packageRefs.Decode(encoded)

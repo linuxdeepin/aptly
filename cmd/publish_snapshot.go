@@ -88,7 +88,6 @@ func aptlyPublishSnapshotOrRepo(cmd *commander.Command, args []string) error {
 			if err != nil {
 				return fmt.Errorf("unable to publish: %s", err)
 			}
-			fmt.Println("zzzzzzz:  ", localRepo.UUID, localRepo.Name)
 			sources = append(sources, localRepo)
 			parts = append(parts, localRepo.Name)
 

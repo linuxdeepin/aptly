@@ -4,6 +4,9 @@ package context
 import (
 	gocontext "context"
 	"fmt"
+	"github.com/aptly-dev/aptly/console"
+	"github.com/aptly-dev/aptly/database/etcddb"
+	"github.com/aptly-dev/aptly/database/goleveldb"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -15,9 +18,7 @@ import (
 	"time"
 
 	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/console"
 	"github.com/aptly-dev/aptly/database"
-	goleveldb "github.com/aptly-dev/aptly/database/etcddb"
 	"github.com/aptly-dev/aptly/deb"
 	"github.com/aptly-dev/aptly/files"
 	"github.com/aptly-dev/aptly/http"
@@ -40,12 +41,14 @@ type AptlyContext struct {
 
 	progress          aptly.Progress
 	downloader        aptly.Downloader
+	TaskProgress      map[int]aptly.Progress
 	database          database.Storage
 	packagePool       aptly.PackagePool
 	publishedStorages map[string]aptly.PublishedStorage
 	collectionFactory *deb.CollectionFactory
 	dependencyOptions int
 	architecturesList []string
+	// Get retrieves data from the context.
 	// Debug features
 	fileCPUProfile *os.File
 	fileMemProfile *os.File
@@ -91,7 +94,10 @@ func (context *AptlyContext) config() *utils.ConfigStructure {
 				Fatal(err)
 			}
 		} else {
+			pwd, _ := os.Getwd()
+			fmt.Println("get config path:", filepath.Join(pwd, "/config/aptly.conf"))
 			configLocations := []string{
+				filepath.Join(pwd, "/config/aptly.conf"),
 				filepath.Join(os.Getenv("HOME"), ".aptly.conf"),
 				"/etc/aptly.conf",
 			}
@@ -107,11 +113,11 @@ func (context *AptlyContext) config() *utils.ConfigStructure {
 			}
 
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Config file not found, creating default config at %s\n\n", configLocations[0])
+				_, _ = fmt.Fprintf(os.Stderr, "Config file not found, creating default config at %s\n\n", configLocations[0])
 
 				// as this is fresh aptly installation, we don't need to support legacy pool locations
 				utils.Config.SkipLegacyPool = true
-				utils.SaveConfig(configLocations[0], &utils.Config)
+				_ = utils.SaveConfig(configLocations[0], &utils.Config)
 			}
 		}
 
@@ -183,6 +189,32 @@ func (context *AptlyContext) ArchitecturesList() []string {
 	return context.architecturesList
 }
 
+func (context *AptlyContext) NewProgress(uid int) aptly.Progress {
+	context.Lock()
+	defer context.Unlock()
+	return context._newprogress(uid)
+}
+
+func (context *AptlyContext) _newprogress(uid int) aptly.Progress {
+	if context.store(uid) != nil {
+		return context.store(uid)
+	} else {
+		context.TaskProgress = make(map[int]aptly.Progress)
+		context.progress = console.NewProgress()
+		context.progress.Start()
+		context.TaskProgress[uid] = context.progress
+		return context.progress
+	}
+
+}
+
+func (context *AptlyContext) store(uid int) aptly.Progress {
+	if _, ok := context.TaskProgress[uid]; ok {
+		return context.TaskProgress[uid]
+	}
+	return nil
+}
+
 // Progress creates or returns Progress object
 func (context *AptlyContext) Progress() aptly.Progress {
 	context.Lock()
@@ -198,6 +230,16 @@ func (context *AptlyContext) _progress() aptly.Progress {
 	}
 
 	return context.progress
+}
+
+func RandomUid() int {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	first := r.Intn(10)
+	if first == 0 || first == 10 {
+		first = 1
+	}
+	num := time.Now().Nanosecond() + r.Intn((1000 - 100)) + 1000*first
+	return num
 }
 
 // Downloader returns instance of current downloader
@@ -222,7 +264,8 @@ func (context *AptlyContext) Downloader() aptly.Downloader {
 				maxTries = maxTriesFlagValue
 			}
 		}
-		context.downloader = http.NewDownloader(downloadLimit*1024, maxTries, context._progress())
+		taskId := RandomUid()
+		context.downloader = http.NewDownloader(downloadLimit*1024, maxTries, context._newprogress(taskId))
 	}
 
 	return context.downloader
@@ -238,8 +281,7 @@ func (context *AptlyContext) DBPath() string {
 
 // DBPath builds path to database
 func (context *AptlyContext) dbPath() string {
-	//return filepath.Join(context.config().RootDir, "db")
-	return filepath.Join(context.config().RootDir)
+	return filepath.Join(context.config().RootDir, "db")
 }
 
 // Database opens and returns current instance of database
@@ -254,7 +296,12 @@ func (context *AptlyContext) _database() (database.Storage, error) {
 	if context.database == nil {
 		var err error
 
-		context.database, err = goleveldb.NewDB(context.dbPath())
+		if context.config().DatabaseEtcd != "" {
+			context.database, err = etcddb.NewDB(context.config().DatabaseEtcd)
+		} else {
+			context.database, err = goleveldb.NewDB(context.dbPath())
+		}
+
 		if err != nil {
 			return nil, fmt.Errorf("can't instantiate database: %s", err)
 		}
@@ -506,22 +553,22 @@ func (context *AptlyContext) Shutdown() {
 
 	if aptly.EnableDebug {
 		if context.fileMemProfile != nil {
-			pprof.WriteHeapProfile(context.fileMemProfile)
-			context.fileMemProfile.Close()
+			_ = pprof.WriteHeapProfile(context.fileMemProfile)
+			_ = context.fileMemProfile.Close()
 			context.fileMemProfile = nil
 		}
 		if context.fileCPUProfile != nil {
 			pprof.StopCPUProfile()
-			context.fileCPUProfile.Close()
+			_ = context.fileCPUProfile.Close()
 			context.fileCPUProfile = nil
 		}
 		if context.fileMemProfile != nil {
-			context.fileMemProfile.Close()
+			_ = context.fileMemProfile.Close()
 			context.fileMemProfile = nil
 		}
 	}
 	if context.database != nil {
-		context.database.Close()
+		_ = context.database.Close()
 		context.database = nil
 	}
 	if context.downloader != nil {
@@ -566,7 +613,7 @@ func NewContext(flags *flag.FlagSet) (*AptlyContext, error) {
 			if err != nil {
 				return nil, err
 			}
-			pprof.StartCPUProfile(context.fileCPUProfile)
+			_ = pprof.StartCPUProfile(context.fileCPUProfile)
 		}
 
 		memprofile := flags.Lookup("memprofile").Value.String()
@@ -586,7 +633,7 @@ func NewContext(flags *flag.FlagSet) (*AptlyContext, error) {
 				return nil, err
 			}
 
-			context.fileMemStats.WriteString("# Time\tHeapSys\tHeapAlloc\tHeapIdle\tHeapReleased\n")
+			_, _ = context.fileMemStats.WriteString("# Time\tHeapSys\tHeapAlloc\tHeapIdle\tHeapReleased\n")
 
 			go func() {
 				var stats runtime.MemStats
@@ -596,7 +643,7 @@ func NewContext(flags *flag.FlagSet) (*AptlyContext, error) {
 				for {
 					runtime.ReadMemStats(&stats)
 					if context.fileMemStats != nil {
-						context.fileMemStats.WriteString(fmt.Sprintf("%d\t%d\t%d\t%d\t%d\n",
+						_, _ = context.fileMemStats.WriteString(fmt.Sprintf("%d\t%d\t%d\t%d\t%d\n",
 							(time.Now().UnixNano()-start)/1000000, stats.HeapSys, stats.HeapAlloc, stats.HeapIdle, stats.HeapReleased))
 						time.Sleep(interval)
 					} else {
@@ -608,4 +655,38 @@ func NewContext(flags *flag.FlagSet) (*AptlyContext, error) {
 	}
 
 	return context, nil
+}
+
+// NewDownloader returns instance of new downloader with given progress
+func (context *AptlyContext) NewDownloader(progress aptly.Progress) aptly.Downloader {
+	context.Lock()
+	defer context.Unlock()
+
+	return context.newDownloader(progress)
+}
+
+// NewDownloader returns instance of new downloader with given progress without locking
+// so it can be used for internal usage.
+func (context *AptlyContext) newDownloader(progress aptly.Progress) aptly.Downloader {
+	var downloadLimit int64
+	limitFlag := context.flags.Lookup("download-limit")
+	if limitFlag != nil {
+		downloadLimit = limitFlag.Value.Get().(int64)
+	}
+	if downloadLimit == 0 {
+		downloadLimit = context.config().DownloadLimit
+	}
+	return http.NewDownloader(downloadLimit*1024, 1, progress)
+}
+
+// NewCollectionFactory builds factory producing all kinds of collections
+func (context *AptlyContext) NewCollectionFactory() *deb.CollectionFactory {
+	context.Lock()
+	defer context.Unlock()
+
+	db, err := context._database()
+	if err != nil {
+		Fatal(err)
+	}
+	return deb.NewCollectionFactory(db)
 }

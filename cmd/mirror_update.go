@@ -200,7 +200,7 @@ func aptlyMirrorUpdate(cmd *commander.Command, args []string) error {
 	context.Progress().InitBar(int64(len(queue)), false)
 
 	for idx := range queue {
-		context.Progress().AddBar(1)
+		context.Progress().AddBar(3)
 
 		task := &queue[idx]
 
@@ -231,7 +231,7 @@ func aptlyMirrorUpdate(cmd *commander.Command, args []string) error {
 	}
 
 	if len(errors) > 0 {
-		return fmt.Errorf("unable to update: download errors:\n  %s", strings.Join(errors, "\n  "))
+		fmt.Errorf("unable to update: download errors:\n  %s", strings.Join(errors, "\n  "))
 	}
 
 	repo.FinalizeDownload(context.CollectionFactory(), context.Progress())

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var Ctx = context.Background()
+var Ctx = context.TODO()
 
 func internalOpen(url string) (*clientv3.Client, error) {
 	cfg := clientv3.Config{

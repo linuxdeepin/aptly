@@ -7,7 +7,8 @@ import (
 )
 
 // ConfigStructure is structure of main configuration
-type ConfigStructure struct { // nolint: maligned
+type ConfigStructure struct {
+	// nolint: maligned
 	RootDir                string                           `json:"rootDir"`
 	DownloadConcurrency    int                              `json:"downloadConcurrency"`
 	DownloadLimit          int64                            `json:"downloadSpeedLimit"`
@@ -30,6 +31,7 @@ type ConfigStructure struct { // nolint: maligned
 	FileSystemPublishRoots map[string]FileSystemPublishRoot `json:"FileSystemPublishEndpoints"`
 	S3PublishRoots         map[string]S3PublishRoot         `json:"S3PublishEndpoints"`
 	SwiftPublishRoots      map[string]SwiftPublishRoot      `json:"SwiftPublishEndpoints"`
+	DatabaseEtcd           string                           `json:"databaseEtcd"`
 }
 
 // FileSystemPublishRoot describes single filesystem publishing entry point

@@ -119,7 +119,7 @@ func (collection *LocalRepoCollection) search(filter func(*LocalRepo) bool, uniq
 		return result
 	}
 
-	collection.db.ProcessByPrefix([]byte("L"), func(key, blob []byte) error {
+	_ = collection.db.ProcessByPrefix([]byte("L"), func(key, blob []byte) error {
 		r := &LocalRepo{}
 		if err := r.Decode(blob); err != nil {
 			log.Printf("Error decoding local repo: %s\n", err)

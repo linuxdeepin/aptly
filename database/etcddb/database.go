@@ -13,6 +13,8 @@ func internalOpen(url string) (*clientv3.Client, error) {
 	cfg := clientv3.Config{
 		Endpoints: []string{url},
 		DialTimeout: 5 * time.Second,
+		MaxCallSendMsgSize: 100 * 1024 * 1024,
+		MaxCallRecvMsgSize: 100 * 1024 * 1024,
 	}
 
 	cli, err := clientv3.New(cfg)

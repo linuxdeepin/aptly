@@ -114,7 +114,7 @@ func (s *etcd_storage) ProcessByPrefix(prefix []byte, proc database.StorageProce
 	for _, kv := range getResp.Kvs {
 		err := proc(kv.Key, kv.Value)
 		if err != nil {
-			fmt.Println("proc error: ",err)
+			//fmt.Println("proc error: ",err)
 			return err
 		}
 	}

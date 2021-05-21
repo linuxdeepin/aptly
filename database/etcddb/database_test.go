@@ -22,13 +22,13 @@ var _ = Suite(&EtcDDBSuite{})
 
 func (s *EtcDDBSuite) SetUpTest(c *C) {
 	var err error
-	s.db, err = etcddb.NewOpenDB("127.0.0.1:2379")
+	s.db, err = etcddb.NewOpenDB("127.0.0.1:3379")
 	c.Assert(err, IsNil)
 }
 
 func (s *EtcDDBSuite) TestSetUpTest(c *C) {
 	var err error
-	s.db, err = etcddb.NewOpenDB("127.0.0.1:2379")
+	s.db, err = etcddb.NewOpenDB("127.0.0.1:3379")
 	c.Assert(err, IsNil)
 }
 
@@ -38,9 +38,6 @@ func (s *EtcDDBSuite) TestGetPut(c *C) {
 		value = []byte("value")
 	)
 	var err error
-
-	_, err = s.db.Get(key)
-	c.Assert(err, IsNil)
 
 	err = s.db.Put(key, value)
 	c.Assert(err, IsNil)
@@ -59,14 +56,12 @@ func (s *EtcDDBSuite) TestDelete(c *C) {
 	err := s.db.Put(key, value)
 	c.Assert(err, IsNil)
 
-	err = s.db.Delete(key)
-	c.Assert(err, IsNil)
-
 	_, err = s.db.Get(key)
 	c.Assert(err, IsNil)
 
 	err = s.db.Delete(key)
 	c.Assert(err, IsNil)
+
 }
 
 
@@ -141,7 +136,7 @@ func (s *EtcDDBSuite) TestTransactionCommit(c *C) {
 	transaction.Delete(key)
 
 	v, err := s.db.Get(key)
-	c.Check(err, IsNil)
+	c.Check(v, IsNil)
 	c.Check(v, DeepEquals, value)
 
 	_, err = transaction.Get(key2)

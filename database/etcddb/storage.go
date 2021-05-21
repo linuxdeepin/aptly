@@ -3,22 +3,21 @@ package etcddb
 import (
 	"fmt"
 	"github.com/aptly-dev/aptly/database"
-	"github.com/syndtr/goleveldb/leveldb"
 	"go.etcd.io/etcd/client/v3"
 )
 
-type etcd_storage struct {
+type EtcDStorage struct {
 	url string
 	db  *clientv3.Client
 }
 
 // CreateTemporary creates new DB of the same type in temp dir
-func (s *etcd_storage) CreateTemporary() (database.Storage, error) {
+func (s *EtcDStorage) CreateTemporary() (database.Storage, error) {
 	return s, nil
 }
 
 // Get key value from etcd
-func (s *etcd_storage) Get(key []byte) (value []byte, err error) {
+func (s *EtcDStorage) Get(key []byte) (value []byte, err error) {
 	getResp, err := s.db.Get(Ctx, string(key))
 	if err != nil {
 		return
@@ -34,7 +33,7 @@ func (s *etcd_storage) Get(key []byte) (value []byte, err error) {
 }
 
 // Put saves key to etcd, if key has the same value in DB already, it is not saved
-func (s *etcd_storage) Put(key []byte, value []byte) (err error) {
+func (s *EtcDStorage) Put(key []byte, value []byte) (err error) {
 	_, err = s.db.Put(Ctx, string(key), string(value))
 	if err != nil {
 		return
@@ -43,7 +42,7 @@ func (s *etcd_storage) Put(key []byte, value []byte) (err error) {
 }
 
 // Delete removes key from etcd
-func (s *etcd_storage) Delete(key []byte) (err error) {
+func (s *EtcDStorage) Delete(key []byte) (err error) {
 	_, err = s.db.Delete(Ctx, string(key))
 	if err != nil {
 		return
@@ -54,7 +53,7 @@ func (s *etcd_storage) Delete(key []byte) (err error) {
 
 
 // KeysByPrefix returns all keys that start with prefix
-func (s *etcd_storage) KeysByPrefix(prefix []byte) [][]byte {
+func (s *EtcDStorage) KeysByPrefix(prefix []byte) [][]byte {
 	fmt.Println("run KeysByPrefix", string(prefix))
 	result := make([][]byte, 0, 20)
 	getResp, err := s.db.Get(Ctx, string(prefix), clientv3.WithPrefix())
@@ -72,7 +71,7 @@ func (s *etcd_storage) KeysByPrefix(prefix []byte) [][]byte {
 }
 
 // FetchByPrefix returns all values with keys that start with prefix
-func (s *etcd_storage) FetchByPrefix(prefix []byte) [][]byte {
+func (s *EtcDStorage) FetchByPrefix(prefix []byte) [][]byte {
 	fmt.Println("run FetchByPrefix", string(prefix))
 	result := make([][]byte, 0, 20)
 	getResp, err := s.db.Get(Ctx, string(prefix), clientv3.WithPrefix())
@@ -90,7 +89,7 @@ func (s *etcd_storage) FetchByPrefix(prefix []byte) [][]byte {
 }
 
 // HasPrefix checks whether it can find any key with given prefix and returns true if one exists
-func (s *etcd_storage) HasPrefix(prefix []byte) bool {
+func (s *EtcDStorage) HasPrefix(prefix []byte) bool {
 	fmt.Println("run HasPrefix", prefix)
 	getResp, err := s.db.Get(Ctx, string(prefix), clientv3.WithPrefix())
 	if err != nil {
@@ -104,7 +103,7 @@ func (s *etcd_storage) HasPrefix(prefix []byte) bool {
 
 // ProcessByPrefix iterates through all entries where key starts with prefix and calls
 // StorageProcessor on key value pair
-func (s *etcd_storage) ProcessByPrefix(prefix []byte, proc database.StorageProcessor) error {
+func (s *EtcDStorage) ProcessByPrefix(prefix []byte, proc database.StorageProcessor) error {
 	fmt.Println("run ProcessByPrefix", string(prefix))
 	getResp, err := s.db.Get(Ctx, string(prefix), clientv3.WithPrefix())
 	if err != nil {
@@ -122,7 +121,7 @@ func (s *etcd_storage) ProcessByPrefix(prefix []byte, proc database.StorageProce
 }
 
 // Close finishes etcd connect
-func (s *etcd_storage) Close() error {
+func (s *EtcDStorage) Close() error {
 	if s.db == nil {
 		return nil
 	}
@@ -132,7 +131,7 @@ func (s *etcd_storage) Close() error {
 }
 
 // Reopen tries to open (re-open) the database
-func (s *etcd_storage) Open() error {
+func (s *EtcDStorage) Open() error {
 	if s.db != nil {
 		return nil
 	}
@@ -142,16 +141,15 @@ func (s *etcd_storage) Open() error {
 }
 
 // CreateBatch creates a Batch object
-func (s *etcd_storage) CreateBatch() database.Batch {
+func (s *EtcDStorage) CreateBatch() database.Batch {
 	fmt.Println("run CreateBatch")
-	return &etcdbatch{
+	return &EtcDBatch{
 		db: s.db,
-		b:  &leveldb.Batch{},
 	}
 }
 
 // OpenTransaction creates new transaction.
-func (s *etcd_storage) OpenTransaction() (database.Transaction, error) {
+func (s *EtcDStorage) OpenTransaction() (database.Transaction, error) {
 	cli, err := internalOpen(s.url)
 	if err != nil {
 		return nil, err
@@ -161,13 +159,13 @@ func (s *etcd_storage) OpenTransaction() (database.Transaction, error) {
 }
 
 // CompactDB compacts database by merging layers
-func (s *etcd_storage) CompactDB() error {
+func (s *EtcDStorage) CompactDB() error {
 	fmt.Println("run CompactDB")
 	return nil
 }
 
 // Drop removes all the etcd files (DANGEROUS!)
-func (s *etcd_storage) Drop() error {
+func (s *EtcDStorage) Drop() error {
 	fmt.Println("run Drop")
 	return nil
 }
@@ -175,5 +173,5 @@ func (s *etcd_storage) Drop() error {
 
 // Check interface
 var (
-	_ database.Storage = &etcd_storage{}
+	_ database.Storage = &EtcDStorage{}
 )

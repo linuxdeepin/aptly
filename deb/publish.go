@@ -577,7 +577,8 @@ func (p *PublishedRepo) Publish(packagePool aptly.PackagePool, publishedStorageP
 	indexes := newIndexFiles(publishedStorage, basePath, tempDir, suffix, p.AcquireByHash)
 
 	legacyContentIndexes := map[string]*ContentsIndex{}
-
+	var count float64
+	count = 0
 	for component, list := range lists {
 		hadUdebs := false
 
@@ -591,14 +592,17 @@ func (p *PublishedRepo) Publish(packagePool aptly.PackagePool, publishedStorageP
 		}
 
 		list.PrepareIndex()
-
+		total := list.Len()
+		tKey := fmt.Sprintf("T%s", p.UUID)
 		contentIndexes := map[string]*ContentsIndex{}
 
 		err = list.ForEachIndexed(func(pkg *Package) error {
 			if progress != nil {
 				progress.AddBar(1)
 			}
-
+			count = count + 1
+			tVal := fmt.Sprintf("%.2f", count/float64(total)*100)
+			_ = tempDB.Put([]byte(tKey), []byte(tVal))
 			for _, arch := range p.Architectures {
 				if pkg.MatchesArchitecture(arch) {
 					hadUdebs = hadUdebs || pkg.IsUdeb

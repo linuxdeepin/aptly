@@ -37,7 +37,7 @@ func (t *transaction) Put(key, value []byte) (err error) {
 
 // Delete implements database.Writer interface.
 func (t *transaction) Delete(key []byte) (err error) {
-	t.t.Txn(Ctx).
+	_, err = t.t.Txn(Ctx).
 		If(clientv3util.KeyExists(string(key))).
 		Then(clientv3.OpDelete(string(key))).Commit()
 	return

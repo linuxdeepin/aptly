@@ -30,7 +30,7 @@ func NewDB(url string) (database.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &etcd_storage{url, cli}, nil
+	return &EtcDStorage{url, cli}, nil
 }
 
 

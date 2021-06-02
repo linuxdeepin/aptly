@@ -77,16 +77,16 @@ func (p *Progress) InitBar(count int64, isBytes bool) {
 		p.bar = pb.New(0)
 		p.bar.Total = count
 		p.bar.NotPrint = true
-		//p.bar.Callback = func(out string) {
-		//	p.queue <- printTask{code: codeProgress, message: out}
-		//}
-		//
-		//if isBytes {
-		//	p.bar.SetUnits(pb.U_BYTES)
-		//	p.bar.ShowSpeed = true
-		//}
-		//
-		//p.queue <- printTask{code: codeBarEnabled}
+		p.bar.Callback = func(out string) {
+			p.queue <- printTask{code: codeProgress, message: out}
+		}
+
+		if isBytes {
+			p.bar.SetUnits(pb.U_BYTES)
+			p.bar.ShowSpeed = true
+		}
+
+		p.queue <- printTask{code: codeBarEnabled}
 		p.bar.Start()
 	}
 }

@@ -95,12 +95,12 @@ func (context *AptlyContext) config() *utils.ConfigStructure {
 			}
 		} else {
 			pwd, _ := os.Getwd()
-			fmt.Println("get config path:", filepath.Join(pwd, "/config/aptly.conf"))
 			configLocations := []string{
 				filepath.Join(pwd, "/config/aptly.conf"),
 				filepath.Join(os.Getenv("HOME"), ".aptly.conf"),
 				"/etc/aptly.conf",
 			}
+			fmt.Println("get config path:", configLocations)
 
 			for _, configLocation := range configLocations {
 				err = utils.LoadConfig(configLocation, &utils.Config)

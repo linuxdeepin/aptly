@@ -214,7 +214,8 @@ func apiPublishRepoOrSnapshot(c *gin.Context) {
 		return
 	}
 
-	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, nil, b.ForceOverwrite, b.Sha512open)
+	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, nil, b.ForceOverwrite,
+		b.Sha512open, context.Config())
 	if err != nil {
 		c.AbortWithError(500, fmt.Errorf("unable to publish: %s", err))
 		return
@@ -329,7 +330,9 @@ func apiPublishUpdateSwitch(c *gin.Context) {
 		published.AcquireByHash = *b.AcquireByHash
 	}
 
-	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, nil, b.ForceOverwrite, b.Sha512open)
+	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, nil, b.ForceOverwrite,
+		b.Sha512open, context.Config())
+
 	if err != nil {
 		c.AbortWithError(500, fmt.Errorf("unable to update: %s", err))
 		return

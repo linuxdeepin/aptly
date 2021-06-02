@@ -14,13 +14,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pborman/uuid"
-	"github.com/ugorji/go/codec"
-
 	"github.com/aptly-dev/aptly/aptly"
 	"github.com/aptly-dev/aptly/database"
 	"github.com/aptly-dev/aptly/pgp"
 	"github.com/aptly-dev/aptly/utils"
+	"github.com/pborman/uuid"
+	"github.com/ugorji/go/codec"
 )
 
 type repoSourceItem struct {
@@ -262,9 +261,9 @@ func NewPublishedRepo(storage, prefix, distribution string, architectures []stri
 		}
 	}
 
-	if strings.Contains(distribution, "/") {
-		return nil, fmt.Errorf("invalid distribution %s, '/' is not allowed", distribution)
-	}
+	//if strings.Contains(distribution, "/") {
+	//	return nil, fmt.Errorf("invalid distribution %s, '/' is not allowed", distribution)
+	//}
 
 	result.Distribution = distribution
 
@@ -499,11 +498,37 @@ func (p *PublishedRepo) GetSuite() string {
 	return p.Suite
 }
 
+type ContentFile struct {
+	Write *bufio.Writer
+	Files *os.File
+}
+
+var ContentEvent map[string]ContentFile
+
+func ContentFileOpen(filePath string) (Content ContentFile, err error) {
+	var cf ContentFile
+	file, err := os.Create(filePath)
+	if err != nil {
+		return
+	}
+	cf.Write = bufio.NewWriter(file)
+	cf.Files = file
+	return cf, err
+}
+
+func ContentFileClose(cf ContentFile) (err error) {
+	defer cf.Files.Close()
+	err = cf.Write.Flush()
+	err = utils.CompressFile(cf.Files, true)
+	return
+}
+
 // Publish publishes snapshot (repository) contents, links package files, generates Packages & Release files, signs them
 func (p *PublishedRepo) Publish(packagePool aptly.PackagePool, publishedStorageProvider aptly.PublishedStorageProvider,
-	collectionFactory *CollectionFactory, signer pgp.Signer, progress aptly.Progress, forceOverwrite, Sha512open bool) error {
+	collectionFactory *CollectionFactory, signer pgp.Signer, progress aptly.Progress, forceOverwrite, Sha512open bool,
+	config *utils.ConfigStructure) error {
 	publishedStorage := publishedStorageProvider.GetPublishedStorage(p.Storage)
-
+	//publishRoot := config.FileSystemPublishRoots["test"]
 	err := publishedStorage.MkDir(filepath.Join(p.Prefix, "pool"))
 	if err != nil {
 		return err
@@ -579,6 +604,30 @@ func (p *PublishedRepo) Publish(packagePool aptly.PackagePool, publishedStorageP
 	legacyContentIndexes := map[string]*ContentsIndex{}
 	var count float64
 	count = 0
+
+	//var archList []string
+	//ContentEvent = make(map[string]ContentFile)
+	//ContentFileDir := fmt.Sprintf(path.Join(publishRoot.RootDir, basePath))
+	//err = publishedStorage.MkDir(ContentFileDir)
+	//if err != nil {
+	//	fmt.Println("zzz mkdir content file dir error: ", err)
+	//}
+	//fmt.Println("zzzz  ContentFileDir:", ContentFileDir)
+	//
+	//for _, arch := range p.Architectures {
+	//	ContentFileName := fmt.Sprintf("Contents-%s", arch)
+	//	contentFile := path.Join(ContentFileDir, ContentFileName)
+	//	fmt.Println(contentFile)
+	//	cf, err := ContentFileOpen(contentFile)
+	//	if err != nil {
+	//		fmt.Println("zzz Content open file error: ", err)
+	//	}
+	//	archList = append(archList, arch)
+	//	ContentEvent[arch] = cf
+	//	headInfo := fmt.Sprintf("%s %s\n", "FILE", "LOCATION")
+	//	_, _ = cf.Write.Write([]byte(headInfo))
+	//}
+
 	for component, list := range lists {
 		hadUdebs := false
 
@@ -630,29 +679,41 @@ func (p *PublishedRepo) Publish(packagePool aptly.PackagePool, publishedStorageP
 			// to push each path of the package into the database.
 			// We'll want this batched so as to avoid an excessive
 			// amount of write() calls.
-			tempBatch := tempDB.CreateBatch()
-			defer tempBatch.Write()
+			//tempBatch := tempDB.CreateBatch()
+			//defer tempBatch.Write()
+			// ContentFile write content info
+
 
 			for _, arch := range p.Architectures {
 				if pkg.MatchesArchitecture(arch) {
+					//cf := ContentEvent[arch]
+					//qualifiedName := []byte(pkg.QualifiedName())
+					//contents := pkg.Contents(packagePool, progress)
+					//for _, content := range contents {
+					//	packageInfo := fmt.Sprintf("%s %s\n", content, qualifiedName)
+					//	_, err := cf.Write.Write([]byte(packageInfo))
+					//	if err != nil {
+					//		continue
+					//	}
+					//}
+
 					var bufWriter *bufio.Writer
-
-					if !p.SkipContents && !pkg.IsInstaller {
-						key := fmt.Sprintf("%s-%v", arch, pkg.IsUdeb)
-						qualifiedName := []byte(pkg.QualifiedName())
-						contents := pkg.Contents(packagePool, progress)
-
-						for _, contentIndexesMap := range []map[string]*ContentsIndex{contentIndexes, legacyContentIndexes} {
-							contentIndex := contentIndexesMap[key]
-
-							if contentIndex == nil {
-								contentIndex = NewContentsIndex(tempDB)
-								contentIndexesMap[key] = contentIndex
-							}
-
-							contentIndex.Push(qualifiedName, contents, tempBatch)
-						}
-					}
+					//if !p.SkipContents && !pkg.IsInstaller {
+						//key := fmt.Sprintf("%s-%v", arch, pkg.IsUdeb)
+						//qualifiedName := []byte(pkg.QualifiedName())
+						//contents := pkg.Contents(packagePool, progress)
+						//fmt.Println("zzzzzzz qualifiedName, contents", string(qualifiedName), contents)
+						//for _, contentIndexesMap := range []map[string]*ContentsIndex{contentIndexes, legacyContentIndexes} {
+						//	fmt.Println("zzzzzzz contentIndexesMap", contentIndexesMap, key)
+						//	contentIndex := contentIndexesMap[key]
+						//	fmt.Println("zzzzzzz contentIndex", contentIndex)
+						//	if contentIndex == nil {
+						//		contentIndex = NewContentsIndex(tempDB)
+						//		contentIndexesMap[key] = contentIndex
+						//	}
+						//	contentIndex.Push(qualifiedName, contents, tempBatch)
+						//}
+					//}
 
 					bufWriter, err = indexes.PackageIndex(component, arch, pkg.IsUdeb, pkg.IsInstaller).BufWriter()
 					if err != nil {
@@ -743,6 +804,15 @@ func (p *PublishedRepo) Publish(packagePool aptly.PackagePool, publishedStorageP
 			}
 		}
 	}
+
+	//for _, arch := range p.Architectures {
+	//	cf := ContentEvent[arch]
+	//	_, _ = cf.Write.Write([]byte("\n"))
+	//	_ = ContentFileClose(cf)
+	//	ContentFileName := fmt.Sprintf("Contents-%s", arch)
+	//	delTempFile := path.Join(ContentFileDir, ContentFileName)
+	//	_ = os.Remove(delTempFile)
+	//}
 
 	for _, arch := range p.Architectures {
 		for _, udeb := range []bool{true, false} {

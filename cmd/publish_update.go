@@ -60,7 +60,8 @@ func aptlyPublishUpdate(cmd *commander.Command, args []string) error {
 	}
 
 	sha512open := context.Flags().Lookup("sha512-open").Value.Get().(bool)
-	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, context.Progress(), forceOverwrite, sha512open)
+	err = published.Publish(context.PackagePool(), context, context.CollectionFactory(), signer, context.Progress(),
+	forceOverwrite, sha512open, context.Config())
 	if err != nil {
 		return fmt.Errorf("unable to publish: %s", err)
 	}

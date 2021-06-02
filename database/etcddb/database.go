@@ -12,9 +12,10 @@ var Ctx = context.TODO()
 func internalOpen(url string) (*clientv3.Client, error) {
 	cfg := clientv3.Config{
 		Endpoints: []string{url},
-		DialTimeout: 5 * time.Second,
-		MaxCallSendMsgSize: 100 * 1024 * 1024,
-		MaxCallRecvMsgSize: 100 * 1024 * 1024,
+		DialTimeout: 30 * time.Second,
+		MaxCallSendMsgSize: 2048 * 1024 * 1024,
+		MaxCallRecvMsgSize: 2048 * 1024 * 1024,
+		DialKeepAliveTimeout: 7200 * time.Second,
 	}
 
 	cli, err := clientv3.New(cfg)

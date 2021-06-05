@@ -100,7 +100,6 @@ func (context *AptlyContext) config() *utils.ConfigStructure {
 				filepath.Join(os.Getenv("HOME"), ".aptly.conf"),
 				"/etc/aptly.conf",
 			}
-			fmt.Println("get config path:", configLocations)
 
 			for _, configLocation := range configLocations {
 				err = utils.LoadConfig(configLocation, &utils.Config)

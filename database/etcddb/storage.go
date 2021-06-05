@@ -1,7 +1,6 @@
 package etcddb
 
 import (
-	"fmt"
 	"github.com/aptly-dev/aptly/database"
 	"go.etcd.io/etcd/client/v3"
 )
@@ -54,11 +53,9 @@ func (s *EtcDStorage) Delete(key []byte) (err error) {
 
 // KeysByPrefix returns all keys that start with prefix
 func (s *EtcDStorage) KeysByPrefix(prefix []byte) [][]byte {
-	fmt.Println("run KeysByPrefix", string(prefix))
 	result := make([][]byte, 0, 20)
 	getResp, err := s.db.Get(Ctx, string(prefix), clientv3.WithPrefix())
 	if err != nil {
-		fmt.Println(err)
 		return nil
 	}
 	for _, ev := range getResp.Kvs {
@@ -72,11 +69,9 @@ func (s *EtcDStorage) KeysByPrefix(prefix []byte) [][]byte {
 
 // FetchByPrefix returns all values with keys that start with prefix
 func (s *EtcDStorage) FetchByPrefix(prefix []byte) [][]byte {
-	fmt.Println("run FetchByPrefix", string(prefix))
 	result := make([][]byte, 0, 20)
 	getResp, err := s.db.Get(Ctx, string(prefix), clientv3.WithPrefix())
 	if err != nil {
-		fmt.Println("err:", err)
 		return nil
 	}
 	for _, kv := range getResp.Kvs{
@@ -90,10 +85,9 @@ func (s *EtcDStorage) FetchByPrefix(prefix []byte) [][]byte {
 
 // HasPrefix checks whether it can find any key with given prefix and returns true if one exists
 func (s *EtcDStorage) HasPrefix(prefix []byte) bool {
-	fmt.Println("run HasPrefix", prefix)
 	getResp, err := s.db.Get(Ctx, string(prefix), clientv3.WithPrefix())
 	if err != nil {
-		fmt.Println(err)
+		return false
 	}
 	if getResp.Count != 0 {
 		return true
@@ -104,16 +98,14 @@ func (s *EtcDStorage) HasPrefix(prefix []byte) bool {
 // ProcessByPrefix iterates through all entries where key starts with prefix and calls
 // StorageProcessor on key value pair
 func (s *EtcDStorage) ProcessByPrefix(prefix []byte, proc database.StorageProcessor) error {
-	fmt.Println("run ProcessByPrefix", string(prefix))
 	getResp, err := s.db.Get(Ctx, string(prefix), clientv3.WithPrefix())
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	for _, kv := range getResp.Kvs {
 		err := proc(kv.Key, kv.Value)
 		if err != nil {
-			//fmt.Println("proc error: ",err)
 			return err
 		}
 	}
@@ -142,7 +134,6 @@ func (s *EtcDStorage) Open() error {
 
 // CreateBatch creates a Batch object
 func (s *EtcDStorage) CreateBatch() database.Batch {
-	fmt.Println("run CreateBatch")
 	return &EtcDBatch{
 		db: s.db,
 	}
@@ -160,13 +151,11 @@ func (s *EtcDStorage) OpenTransaction() (database.Transaction, error) {
 
 // CompactDB compacts database by merging layers
 func (s *EtcDStorage) CompactDB() error {
-	fmt.Println("run CompactDB")
 	return nil
 }
 
 // Drop removes all the etcd files (DANGEROUS!)
 func (s *EtcDStorage) Drop() error {
-	fmt.Println("run Drop")
 	return nil
 }
 
